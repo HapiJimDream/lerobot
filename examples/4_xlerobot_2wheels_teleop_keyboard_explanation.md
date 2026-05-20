@@ -99,7 +99,7 @@ log_rerun_data(obs, action)
 - `r/f`: 左腕 roll
 - `t/g`: 左夹爪
 - `w/s/a/d`: 左臂末端在 x/y 平面移动，内部用 `SO101Kinematics.inverse_kinematics()`
-- `z/x`: pitch
+- `z/x`: pitchc
 - `c`: 左臂归零
 - `y`: 左臂矩形轨迹
 
