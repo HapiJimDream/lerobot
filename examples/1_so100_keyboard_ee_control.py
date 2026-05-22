@@ -42,7 +42,7 @@ def apply_joint_calibration(joint_name, raw_position):
             scale = joint_cal[2]   # scale factor
             calibrated_position = (raw_position - offset) * scale
             return calibrated_position
-    return raw_position  # if no calibration coefficient found, return original value
+    return raw_position  # if no calibration coefficient found, return original valueyhh
 
 def inverse_kinematics(x, y, l1=0.1159, l2=0.1350):
     """

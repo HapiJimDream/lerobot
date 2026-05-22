@@ -147,12 +147,16 @@ class SimpleHeadControl:
             "head_motor_1": initial_obs.get("head_motor_1.pos", 0.0),
             "head_motor_2": initial_obs.get("head_motor_2.pos", 0.0),
         }
+        self.start_positions = self.target_positions.copy()
         self.zero_pos = {"head_motor_1": 0.0, "head_motor_2": 0.0}
 
     def move_to_zero_position(self, robot):
         self.target_positions = self.zero_pos.copy()
         action = self.p_control_action(robot)
         robot.send_action(action)
+
+    def move_to_start_position(self):
+        self.target_positions = self.start_positions.copy()
 
     def handle_keys(self, key_state):
         if key_state.get('head_motor_1+'):
@@ -239,6 +243,10 @@ class SimpleTeleopArm:
         
         action = self.p_control_action(robot)
         robot.send_action(action)
+
+    def move_to_start_position(self):
+        print(f"[{self.prefix}] Returning to start position: {self.joint_positions} ......")
+        self.target_positions = self.joint_positions.copy()
 
     def execute_rectangular_trajectory(self, robot, fps=30):
         """
@@ -487,6 +495,31 @@ class SmoothBaseController:
 smooth_controller = SmoothBaseController()
 
 
+def return_to_start_position(robot, left_arm, right_arm, head_control, duration_s=3.0, fps=50):
+    print("[MAIN] Returning arms and head to start position before shutdown...")
+    left_arm.move_to_start_position()
+    right_arm.move_to_start_position()
+    head_control.move_to_start_position()
+
+    steps = max(1, int(duration_s * fps))
+    for _ in range(steps):
+        left_action = left_arm.p_control_action(robot)
+        right_action = right_arm.p_control_action(robot)
+        head_action = head_control.p_control_action(robot)
+        action = {
+            **left_action,
+            **right_action,
+            **head_action,
+            "x.vel": 0.0,
+            "theta.vel": 0.0,
+        }
+        robot.send_action(action)
+        precise_sleep(1.0 / fps)
+
+    robot.send_action({"x.vel": 0.0, "theta.vel": 0.0})
+    print("[MAIN] Return to start position finished.")
+
+
 def main():
     # Teleop parameters
     FPS = 50
@@ -681,6 +714,10 @@ def main():
             log_rerun_data(obs, action)
             precise_sleep(1.0 / FPS)
     finally:
+        try:
+            return_to_start_position(robot, left_arm, right_arm, head_control, duration_s=3.0, fps=FPS)
+        except Exception as e:
+            print(f"[MAIN] Failed to return to start position: {e}")
         robot.disconnect()
         keyboard.disconnect()
         print("Teleoperation ended.")
