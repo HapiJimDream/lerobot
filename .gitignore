@@ -88,6 +88,8 @@ coverage.xml
 
 ### Logs & Temporary Files ###
 logs/
+!examples/logs/
+!examples/logs/.gitignore
 tmp/
 *.log
 pip-log.txt

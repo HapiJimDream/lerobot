@@ -48,10 +48,10 @@
     ```text
         PYTHONPATH=src python examples/4_xlerobot_2wheels_teleop_keyboard.py
     ```
-/dev/cu.usbmodem5B141120971
-/dev/cu.usbmodem5B141156081
-l /dev/tty.usbmodem5B141156081
-r /dev/tty.usbmodem5B141120971
+    /dev/cu.usbmodem5B141120971
+    /dev/cu.usbmodem5B141156081
+    l /dev/tty.usbmodem5B141156081
+    r /dev/tty.usbmodem5B141120971
 * 本地模式 
   * 修改机器人配置
     ```text
