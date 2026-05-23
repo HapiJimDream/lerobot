@@ -14,7 +14,7 @@
 
 
 #xlerobot
-examples/CLIP
+examples/CLIP/
 examples/yolo11s.pt
 examples/yolo11x.pt
 examples/yoloe-11s-seg.pt
