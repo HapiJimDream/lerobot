@@ -393,12 +393,12 @@ def main():
     robot_name = "my_xlerobot_pc"
 
     # For zmq connection
-    # robot_config = XLerobotClientConfig(remote_ip=ip, id=robot_name)
-    # robot = XLerobotClient(robot_config)    
+    robot_config = XLerobotClientConfig(remote_ip=ip, id=robot_name)
+    robot = XLerobotClient(robot_config)    
 
     # For local/wired connection
-    robot_config = XLerobotConfig()
-    robot = XLerobot(robot_config)
+    # robot_config = XLerobotConfig()
+    # robot = XLerobot(robot_config)
     
     try:
         robot.connect()
