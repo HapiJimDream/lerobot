@@ -176,8 +176,8 @@ def main():
     
     parser = argparse.ArgumentParser(description="XLerobot2Wheels Host")
     parser.add_argument("--robot.id", dest="robot_id", type=str, default="my_xlerobot_2wheels_lab", help="Robot ID")
-    parser.add_argument("--robot.port1", dest="robot_port1", type=str, default="/dev/tty.usbmodem5B141156081", help="Port 1")  # /dev/tty.usbmodem5B141156081
-    parser.add_argument("--robot.port2", dest="robot_port2", type=str, default="/dev/tty.usbmodem5B141120971", help="Port 2") # /dev/tty.usbmodem5B141120971
+    parser.add_argument("--robot.port1", dest="robot_port1", type=str, default="/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00", help="Port 1")  # /dev/tty.usbmodem5B141156081
+    parser.add_argument("--robot.port2", dest="robot_port2", type=str, default="/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00", help="Port 2") # /dev/tty.usbmodem5B141120971
     parser.add_argument("--host.port_zmq_cmd", dest="host_port_zmq_cmd", type=int, default=5555, help="ZMQ command port")
     parser.add_argument(
         "--host.port_zmq_observations",

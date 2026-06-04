@@ -82,11 +82,11 @@ class FixedAxesJoyconRobotics(JoyconRobotics):
         joycon_stick_v_threshold = 300
         joycon_stick_v_range = 1000
         if joycon_stick_v > joycon_stick_v_threshold + self.joycon_stick_v_0:
-            self.position[0] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[0] * self.direction_reverse[0] * math.cos(pitch)
-            self.position[2] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[1] * self.direction_reverse[1] * math.sin(pitch)
+            self.position[0] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[0] * self.direction_reverse[0] * math.cos(pitch) * 0.6
+            self.position[2] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[1] * self.direction_reverse[1] * math.sin(pitch) * 0.6
         elif joycon_stick_v < self.joycon_stick_v_0 - joycon_stick_v_threshold:
-            self.position[0] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[0] * self.direction_reverse[0] * math.cos(pitch)
-            self.position[2] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[1] * self.direction_reverse[1] * math.sin(pitch)
+            self.position[0] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[0] * self.direction_reverse[0] * math.cos(pitch) * 0.6
+            self.position[2] += speed_scale * (joycon_stick_v - self.joycon_stick_v_0) / joycon_stick_v_range *self.dof_speed[1] * self.direction_reverse[1] * math.sin(pitch) * 0.6
         
         # Horizontal joystick: only controls Y axis (left/right)
         joycon_stick_h = self.joycon.get_stick_right_horizontal() if self.joycon.is_right() else self.joycon.get_stick_left_horizontal()
@@ -100,11 +100,11 @@ class FixedAxesJoyconRobotics(JoyconRobotics):
         # Z-axis button control
         joycon_button_up = self.joycon.get_button_r() if self.joycon.is_right() else self.joycon.get_button_l()
         if joycon_button_up == 1:
-            self.position[2] += speed_scale * self.dof_speed[2] * self.direction_reverse[2]
-        
+            self.position[2] += speed_scale * self.dof_speed[2] * self.direction_reverse[2] * 0.6
+
         joycon_button_down = self.joycon.get_button_r_stick() if self.joycon.is_right() else self.joycon.get_button_l_stick()
         if joycon_button_down == 1:
-            self.position[2] -= speed_scale * self.dof_speed[2] * self.direction_reverse[2]
+            self.position[2] -= speed_scale * self.dof_speed[2] * self.direction_reverse[2] * 0.6
         
         # Home button reset logic (simplified version)
         joycon_button_home = self.joycon.get_button_home() if self.joycon.is_right() else self.joycon.get_button_capture()
@@ -304,16 +304,16 @@ class SimpleHeadControl:
         button_right = joycon.joycon.get_button_right() # Right: head_motor_2-
         
         if button_up == 1:
-            self.target_positions["head_motor_2"] += self.degree_step
-            print(f"[HEAD] head_motor_2: {self.target_positions['head_motor_2']}")
-        if button_down == 1:
             self.target_positions["head_motor_2"] -= self.degree_step
             print(f"[HEAD] head_motor_2: {self.target_positions['head_motor_2']}")
+        if button_down == 1:
+            self.target_positions["head_motor_2"] += self.degree_step
+            print(f"[HEAD] head_motor_2: {self.target_positions['head_motor_2']}")
         if button_left == 1:
-            self.target_positions["head_motor_1"] += self.degree_step
+            self.target_positions["head_motor_1"] -= self.degree_step
             print(f"[HEAD] head_motor_1: {self.target_positions['head_motor_1']}")
         if button_right == 1:
-            self.target_positions["head_motor_1"] -= self.degree_step
+            self.target_positions["head_motor_1"] += self.degree_step
             print(f"[HEAD] head_motor_1: {self.target_positions['head_motor_1']}")
 
     def p_control_action(self, robot):

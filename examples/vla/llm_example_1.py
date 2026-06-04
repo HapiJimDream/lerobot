@@ -7,8 +7,8 @@ from robocrew.robots.XLeRobot.servo_controls import ServoControler
 main_camera = RobotCamera("/dev/video0") # camera usb port Eg: /dev/video0
 
 #set up servo controler
-right_arm_wheel_usb = "/dev/tty.usbmodem5B141120971"    # provide your right arm usb port. Eg: /dev/ttyACM1
-left_arm_head_usb = "/dev/tty.usbmodem5B141156081"      # provide your left arm usb port. Eg: /dev/ttyACM0
+right_arm_wheel_usb = "/dev/ttyACM0"    # provide your right arm usb port. Eg: /dev/ttyACM1
+left_arm_head_usb = "/dev/ttyACM1"      # provide your left arm usb port. Eg: /dev/ttyACM0
 servo_controler = ServoControler(right_arm_wheel_usb, left_arm_head_usb)
 
 #set up tools

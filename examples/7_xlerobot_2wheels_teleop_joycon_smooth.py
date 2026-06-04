@@ -1,6 +1,6 @@
 # To Run on the host
 '''
-PYTHONPATH=src python -m lerobot.robots.xlerobot_2wheels.xlerobot_2wheels_host --robot.id=my_xlerobot_2wheels
+PYTHONPATH=src python -m lerobot.robots.xlerobot_2wheels.xlerobot_2wheels_host --robot.id=my_xlerobot_2wheels_lab
 '''
 
 # To Run the teleop:
@@ -173,15 +173,12 @@ class FixedAxesJoyconRobotics(JoyconRobotics):
         return self.position, self.gripper_state, self.button_control
     
 class SimpleTeleopArm:
-    def __init__(self, joint_map, initial_obs, kinematics, prefix="right", kp=1):
+    def __init__(self, joint_map, initial_obs, kinematics, prefix="right", kp=1, smooth_speed_scale=1.0):
         self.joint_map = joint_map
         self.prefix = prefix
         self.kp = kp
         self.kinematics = kinematics
-        
-        # Initialize smooth controller for arm joints
-        self.smooth_controller = SmoothArmController()
-        
+
         # Initial joint positions
         self.joint_positions = {
             "shoulder_pan": initial_obs[f"{prefix}_arm_shoulder_pan.pos"],
@@ -191,11 +188,27 @@ class SimpleTeleopArm:
             "wrist_roll": initial_obs[f"{prefix}_arm_wrist_roll.pos"],
             "gripper": initial_obs[f"{prefix}_arm_gripper.pos"],
         }
+
+        # Initialize smooth controller, seeding it with the real starting
+        # positions so the first frame doesn't snap from zero.
+        self.smooth_controller = SmoothArmController(
+            initial_positions=self.joint_positions, speed_scale=smooth_speed_scale
+        )
         
         # Set initial x/y to fixed values
         self.current_x = 0.1629
         self.current_y = 0.1131
         self.pitch = 0.0
+
+        # Neutral shoulder_lift/elbow_flex (IK at the neutral EE position).
+        # Motion amplitude is scaled relative to these so the neutral pose stays
+        # fixed while the range of motion shrinks.
+        try:
+            self.neutral_lift, self.neutral_elbow = self.kinematics.inverse_kinematics(
+                self.current_x, self.current_y
+            )
+        except Exception:
+            self.neutral_lift, self.neutral_elbow = 0.0, 0.0
         
         # Set step size
         self.degree_step = 2
@@ -230,7 +243,10 @@ class SimpleTeleopArm:
         
         # Explicitly set wrist_flex
         self.target_positions["wrist_flex"] = 0.0
-        
+
+        # Snap the smoother to zero so the reset is immediate, not ramped.
+        self.smooth_controller.reset(self.zero_pos)
+
         action = self.p_control_action(robot)
         robot.send_action(action)
 
@@ -252,13 +268,19 @@ class SimpleTeleopArm:
         
         # Add y value to control shoulder_pan joint - consistent with 6_so100_joycon_ee_control.py
         y_scale = 250.0  # Scaling factor, can be adjusted as needed
-        self.target_positions["shoulder_pan"] = y * y_scale
-        
+        self.target_positions["shoulder_pan"] = y * y_scale * ARM_MOTION_SCALE
+
         # Use inverse kinematics to calculate joint angles - consistent with 6_so100_joycon_ee_control.py
+        # Amplitude scaled relative to the neutral pose so the range of motion
+        # shrinks without shifting the neutral position.
         try:
             joint2_target, joint3_target = self.kinematics.inverse_kinematics(current_x, current_y)
-            self.target_positions["shoulder_lift"] = joint2_target
-            self.target_positions["elbow_flex"] = joint3_target
+            self.target_positions["shoulder_lift"] = (
+                self.neutral_lift + (joint2_target - self.neutral_lift) * ARM_MOTION_SCALE
+            )
+            self.target_positions["elbow_flex"] = (
+                self.neutral_elbow + (joint3_target - self.neutral_elbow) * ARM_MOTION_SCALE
+            )
         except Exception as e:
             print(f"[{self.prefix}] IK failed: {e}")
         
@@ -275,18 +297,23 @@ class SimpleTeleopArm:
         obs = robot.get_observation()
         current = {j: obs[f"{self.prefix}_arm_{j}.pos"] for j in self.joint_map}
         
-        # Apply smooth control to the first three joints
-        smoothed_positions = self.smooth_controller.update(self.target_positions, current)
-        
+        # Apply slew-rate smoothing to the first three joints only when enabled.
+        smoothed_positions = (
+            self.smooth_controller.update(self.target_positions)
+            if ENABLE_ARM_SMOOTH_CONTROL
+            else {}
+        )
+
         action = {}
         for j in self.target_positions:
-            if j in ["shoulder_pan", "shoulder_lift", "elbow_flex"]:
-                # Use smoothed positions for the first three joints
-                error = smoothed_positions[j] - current[j]
+            if ENABLE_ARM_SMOOTH_CONTROL and j in SmoothArmController.JOINTS:
+                # Use the smoothed (velocity-limited) setpoint for these joints.
+                target = smoothed_positions[j]
             else:
-                # Use direct control for other joints (wrist_flex, wrist_roll, gripper)
-                error = self.target_positions[j] - current[j]
-            
+                # Direct control for the rest (wrist_flex, wrist_roll, gripper).
+                target = self.target_positions[j]
+
+            error = target - current[j]
             control = self.kp * error
             action[f"{self.joint_map[j]}.pos"] = current[j] + control
         return action
@@ -294,7 +321,7 @@ class SimpleTeleopArm:
 class SimpleHeadControl:
     def __init__(self, initial_obs, kp=1):
         self.kp = kp
-        self.degree_step = 2  # Move 2 degrees each time
+        self.degree_step = 2 * HEAD_MOTION_SCALE  # per-step amplitude (scaled)
         # Initialize head motor positions
         self.target_positions = {
             "head_motor_1": initial_obs.get("head_motor_1.pos", 0.0),
@@ -379,10 +406,20 @@ BASE_MAX_SPEED = 5.0          # maximum speed multiplier
 MIN_VELOCITY_THRESHOLD = 0.02 # minimum velocity to send to motors during deceleration
 
 # Arm smooth control parameters - adjustable slopes
-ARM_ACCELERATION_RATE = 5.0   # acceleration slope (degrees/second)
-ARM_DECELERATION_RATE = 8.0   # deceleration slope (degrees/second)
-ARM_MAX_SPEED = 2.0           # maximum speed multiplier
-ARM_MIN_VELOCITY_THRESHOLD = 0.1 # minimum velocity to send to motors during deceleration
+# These act as a slew-rate (velocity-limited) filter on a *virtual* commanded
+# position that is decoupled from the motor feedback. Raise MAX_SPEED /
+# ACCELERATION to make the motion more pronounced, lower them to make it gentler.
+ARM_ACCELERATION_RATE = 300.0  # degrees/second^2
+ARM_DECELERATION_RATE = 400.0  # degrees/second^2
+ARM_MAX_SPEED = 120.0          # degrees/second
+ARM_MAX_DT = 0.1               # clamp dt so a slow frame can't cause a jump
+ENABLE_ARM_SMOOTH_CONTROL = True
+
+# Motion amplitude scaling (range-of-motion, independent of smoothing speed).
+# Scales how far shoulder_pan/shoulder_lift/elbow_flex move for the same Joy-Con
+# input, relative to the neutral pose (neutral pose itself is unchanged).
+ARM_MOTION_SCALE = 0.5   # 0.5 -> arm motion amplitude halved
+HEAD_MOTION_SCALE = 0.8  # 0.8 -> head motion amplitude reduced by 20%
 
 class SmoothBaseController:
     """Simplified smooth base controller with acceleration/deceleration for differential drive"""
@@ -476,87 +513,69 @@ class SmoothBaseController:
         return base_action
 
 class SmoothArmController:
-    """Smooth arm controller with acceleration/deceleration for the first three joints"""
-    
-    def __init__(self):
-        self.current_speeds = {
-            "shoulder_pan": 0.0,
-            "shoulder_lift": 0.0,
-            "elbow_flex": 0.0
-        }
+    """Slew-rate (velocity-limited) smoother for the first three joints.
+
+    Instead of stepping from the noisy motor feedback, it advances a *virtual*
+    commanded position toward the target with acceleration/deceleration limits.
+    The commanded position is what gets sent to the servo as an absolute
+    setpoint, so the motor always has a target far enough ahead to move at the
+    requested speed -> motion stays smooth but is clearly noticeable.
+    """
+
+    JOINTS = ("shoulder_pan", "shoulder_lift", "elbow_flex")
+
+    def __init__(self, initial_positions=None, speed_scale=1.0):
+        initial_positions = initial_positions or {}
+        self.commanded = {j: float(initial_positions.get(j, 0.0)) for j in self.JOINTS}
+        self.speeds = {j: 0.0 for j in self.JOINTS}
         self.last_time = time.time()
-        self.last_directions = {
-            "shoulder_pan": 0.0,
-            "shoulder_lift": 0.0,
-            "elbow_flex": 0.0
-        }
-        self.is_moving = {
-            "shoulder_pan": False,
-            "shoulder_lift": False,
-            "elbow_flex": False
-        }
-    
-    def update(self, target_positions, current_positions):
-        """Update smooth control and return smoothed target positions"""
+
+        # Per-arm scaling of the velocity profile (>1 = faster response).
+        self.accel_rate = ARM_ACCELERATION_RATE * speed_scale
+        self.decel_rate = ARM_DECELERATION_RATE * speed_scale
+        self.max_speed = ARM_MAX_SPEED * speed_scale
+
+    def reset(self, positions=None):
+        """Snap the virtual commanded position (e.g. after a move-to-zero)."""
+        positions = positions or {}
+        for j in self.JOINTS:
+            self.commanded[j] = float(positions.get(j, 0.0))
+            self.speeds[j] = 0.0
+        self.last_time = time.time()
+
+    def update(self, target_positions):
+        """Advance the commanded positions toward target and return them."""
         current_time = time.time()
-        dt = current_time - self.last_time
+        dt = min(current_time - self.last_time, ARM_MAX_DT)
         self.last_time = current_time
-        
+
         smoothed_positions = {}
-        
-        for joint in ["shoulder_pan", "shoulder_lift", "elbow_flex"]:
-            target = target_positions.get(joint, 0.0)
-            current = current_positions.get(joint, 0.0)
-            
-            # Calculate direction and magnitude of movement needed
-            error = target - current
+        for joint in self.JOINTS:
+            target = float(target_positions.get(joint, 0.0))
+            pos = self.commanded[joint]
+            error = target - pos
             abs_error = abs(error)
-            
-            if abs_error > 0.1:  # Only move if error is significant
-                # Determine direction
-                direction = 1.0 if error > 0 else -1.0
-                
-                # Check if we're starting to move
-                if not self.is_moving[joint]:
-                    self.is_moving[joint] = True
-                    print(f"[ARM] Starting {joint} movement")
-                
-                # Store current direction for deceleration
-                self.last_directions[joint] = direction
-                
-                # Accelerate
-                self.current_speeds[joint] += ARM_ACCELERATION_RATE * dt
-                self.current_speeds[joint] = min(self.current_speeds[joint], ARM_MAX_SPEED)
-                
-                # Calculate movement step
-                movement_step = self.current_speeds[joint] * dt * direction
-                
-                # Apply movement
-                smoothed_positions[joint] = current + movement_step
-                
+
+            if abs_error < 1e-3:
+                # Already there: bleed off any residual speed.
+                self.speeds[joint] = max(0.0, self.speeds[joint] - self.decel_rate * dt)
+                smoothed_positions[joint] = pos
+                continue
+
+            direction = 1.0 if error > 0 else -1.0
+
+            # Decelerate when close enough that we'd overshoot, else accelerate.
+            stopping_distance = (self.speeds[joint] ** 2) / (2 * self.decel_rate)
+            if abs_error <= stopping_distance:
+                self.speeds[joint] -= self.decel_rate * dt
             else:
-                # No significant error - decelerate
-                if self.is_moving[joint]:
-                    self.is_moving[joint] = False
-                    print(f"[ARM] Starting {joint} deceleration")
-                
-                # Use last direction for deceleration
-                if self.current_speeds[joint] > 0.01 and self.last_directions[joint] != 0:
-                    direction = self.last_directions[joint]
-                    movement_step = self.current_speeds[joint] * dt * direction
-                    
-                    # Ensure minimum velocity during deceleration
-                    if abs(movement_step) < ARM_MIN_VELOCITY_THRESHOLD:
-                        movement_step = ARM_MIN_VELOCITY_THRESHOLD if direction > 0 else -ARM_MIN_VELOCITY_THRESHOLD
-                    
-                    smoothed_positions[joint] = current + movement_step
-                else:
-                    smoothed_positions[joint] = current
-                
-                # Decelerate
-                self.current_speeds[joint] -= ARM_DECELERATION_RATE * dt
-                self.current_speeds[joint] = max(self.current_speeds[joint], 0.0)
-        
+                self.speeds[joint] += self.accel_rate * dt
+            self.speeds[joint] = max(0.0, min(self.speeds[joint], self.max_speed))
+
+            step = min(abs_error, self.speeds[joint] * dt)
+            self.commanded[joint] = pos + direction * step
+            smoothed_positions[joint] = self.commanded[joint]
+
         return smoothed_positions
 
 # Global smooth controller instances
@@ -567,8 +586,17 @@ def main():
     
     # Try to use saved calibration file to avoid recalibrating each time
     # You can modify robot_id here to match your robot configuration
+    
     robot_config = XLerobot2WheelsConfig(id="my_xlerobot_2wheels_lab")  # Can be modified to your robot ID
     robot = XLerobot2Wheels(robot_config)
+    
+    # For zmq connection
+    #robot_config = XLerobot2WheelsClientConfig(remote_ip=ip, id=robot_name)
+    #robot = XLerobot2WheelsClient(robot_config)    
+
+    # For local/wired connection
+    # robot_config = XLerobot2WheelsConfig(id=robot_name)
+    # robot = XLerobot2Wheels(robot_config)
     
     try:
         robot.connect()
@@ -603,7 +631,8 @@ def main():
     obs = robot.get_observation()
     kin_left = SO101Kinematics()
     kin_right = SO101Kinematics()
-    left_arm = SimpleTeleopArm(LEFT_JOINT_MAP, obs, kin_left, prefix="left")
+    # Left arm felt sluggish; speed up its smooth motion profile by 30%.
+    left_arm = SimpleTeleopArm(LEFT_JOINT_MAP, obs, kin_left, prefix="left", smooth_speed_scale=1.3)
     right_arm = SimpleTeleopArm(RIGHT_JOINT_MAP, obs, kin_right, prefix="right")
     head_control = SimpleHeadControl(obs)
 
@@ -664,9 +693,9 @@ def main():
     print(f"     Deceleration Rate: {BASE_DECELERATION_RATE:.1f} speed/second")
     print(f"     Max Speed Multiplier: {BASE_MAX_SPEED:.1f}x")
     print(f"   Arm Control (shoulder_pan, shoulder_lift, elbow_flex):")
-    print(f"     Acceleration Rate: {ARM_ACCELERATION_RATE:.1f} degrees/second")
-    print(f"     Deceleration Rate: {ARM_DECELERATION_RATE:.1f} degrees/second")
-    print(f"     Max Speed Multiplier: {ARM_MAX_SPEED:.1f}x")
+    print(f"     Acceleration Rate: {ARM_ACCELERATION_RATE:.1f} degrees/second^2")
+    print(f"     Deceleration Rate: {ARM_DECELERATION_RATE:.1f} degrees/second^2")
+    print(f"     Max Speed: {ARM_MAX_SPEED:.1f} degrees/second")
     
     print("\n" + "="*80)
     print("🎮 Control started! Use Joy-Con to control robot")

@@ -9,10 +9,54 @@ import time
 import logging
 import traceback
 import math
+import select
+import sys
+import termios
+import tty
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+DEFAULT_CONTROL_FREQ = 20
+XY_STEP = 0.001
+COMM_RETRY_SLEEP_S = 0.1
+COMM_RETRY_COUNT = 3
+
+
+class TerminalKeyboardInput:
+    """Non-blocking keyboard input for headless terminals without DISPLAY/pynput."""
+
+    def __init__(self):
+        self._old_termios = None
+
+    @property
+    def is_connected(self):
+        return self._old_termios is not None
+
+    def connect(self):
+        if not sys.stdin.isatty():
+            raise RuntimeError("Terminal keyboard input requires an interactive TTY.")
+
+        self._old_termios = termios.tcgetattr(sys.stdin)
+        tty.setcbreak(sys.stdin.fileno())
+        print("Using terminal keyboard input fallback.")
+
+    def get_action(self):
+        pressed_keys = set()
+        while select.select([sys.stdin], [], [], 0)[0]:
+            key = sys.stdin.read(1).lower()
+            if key == "\x1b":
+                pressed_keys.add("x")
+            elif key:
+                pressed_keys.add(key)
+
+        return dict.fromkeys(pressed_keys, None)
+
+    def disconnect(self):
+        if self._old_termios is not None:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self._old_termios)
+            self._old_termios = None
 
 # Joint calibration coefficients - manually edited
 # Format: [joint_name, zero_position_offset(degrees), scale_factor]
@@ -108,7 +152,42 @@ def inverse_kinematics(x, y, l1=0.1159, l2=0.1350):
     
     return joint2_deg, joint3_deg
 
-def move_to_zero_position(robot, duration=3.0, kp=0.5):
+
+def read_observation_with_retries(robot):
+    last_error = None
+    for attempt in range(COMM_RETRY_COUNT):
+        try:
+            return robot.get_observation()
+        except ConnectionError as error:
+            last_error = error
+            print(f"Robot communication read failed ({attempt + 1}/{COMM_RETRY_COUNT}): {error}")
+            time.sleep(COMM_RETRY_SLEEP_S)
+
+    raise last_error
+
+
+def send_action_with_retries(robot, robot_action):
+    last_error = None
+    for attempt in range(COMM_RETRY_COUNT):
+        try:
+            robot.send_action(robot_action)
+            return
+        except ConnectionError as error:
+            last_error = error
+            print(f"Robot communication write failed ({attempt + 1}/{COMM_RETRY_COUNT}): {error}")
+            time.sleep(COMM_RETRY_SLEEP_S)
+
+    raise last_error
+
+
+def disconnect_if_connected(device):
+    if device is not None and getattr(device, "is_connected", False):
+        try:
+            device.disconnect()
+        except Exception as error:
+            print(f"Warning: failed to disconnect {device.__class__.__name__}: {error}")
+
+def move_to_zero_position(robot, duration=3.0, kp=0.5, control_freq=DEFAULT_CONTROL_FREQ):
     """
     Use P control to slowly move robot to zero position
     
@@ -120,7 +199,7 @@ def move_to_zero_position(robot, duration=3.0, kp=0.5):
     print("Using P control to slowly move robot to zero position...")
     
     # Get current robot state
-    current_obs = robot.get_observation()
+    current_obs = read_observation_with_retries(robot)
     
     # Extract current joint positions
     current_positions = {}
@@ -140,7 +219,6 @@ def move_to_zero_position(robot, duration=3.0, kp=0.5):
     }
     
     # Calculate control steps
-    control_freq = 50  # 50Hz control frequency
     total_steps = int(duration * control_freq)
     step_time = 1.0 / control_freq
     
@@ -148,7 +226,7 @@ def move_to_zero_position(robot, duration=3.0, kp=0.5):
     
     for step in range(total_steps):
         # Get current robot state
-        current_obs = robot.get_observation()
+        current_obs = read_observation_with_retries(robot)
         current_positions = {}
         for key, value in current_obs.items():
             if key.endswith('.pos'):
@@ -173,7 +251,7 @@ def move_to_zero_position(robot, duration=3.0, kp=0.5):
         
         # Send action to robot
         if robot_action:
-            robot.send_action(robot_action)
+            send_action_with_retries(robot, robot_action)
         
         # Show progress
         if step % (control_freq // 2) == 0:  # Show progress every 0.5 seconds
@@ -184,7 +262,7 @@ def move_to_zero_position(robot, duration=3.0, kp=0.5):
     
     print("Robot has moved to zero position")
 
-def return_to_start_position(robot, start_positions, kp=0.5, control_freq=50):
+def return_to_start_position(robot, start_positions, kp=0.5, control_freq=DEFAULT_CONTROL_FREQ):
     """
     Use P control to return to start position
     
@@ -201,7 +279,7 @@ def return_to_start_position(robot, start_positions, kp=0.5, control_freq=50):
     
     for step in range(max_steps):
         # Get current robot state
-        current_obs = robot.get_observation()
+        current_obs = read_observation_with_retries(robot)
         current_positions = {}
         for key, value in current_obs.items():
             if key.endswith('.pos'):
@@ -226,7 +304,7 @@ def return_to_start_position(robot, start_positions, kp=0.5, control_freq=50):
         
         # Send action to robot
         if robot_action:
-            robot.send_action(robot_action)
+            send_action_with_retries(robot, robot_action)
         
         # Check if reached start position
         if total_error < 2.0:  # If total error is less than 2 degrees, consider reached
@@ -237,7 +315,7 @@ def return_to_start_position(robot, start_positions, kp=0.5, control_freq=50):
     
     print("Return to start position completed")
 
-def p_control_loop(robot, keyboard, target_positions, start_positions, current_x, current_y, kp=0.5, control_freq=50):
+def p_control_loop(robot, keyboard, target_positions, start_positions, current_x, current_y, kp=0.5, control_freq=DEFAULT_CONTROL_FREQ):
     """
     P control loop
     
@@ -285,10 +363,10 @@ def p_control_loop(robot, keyboard, target_positions, start_positions, current_x
                     
                     # x,y coordinate control
                     xy_controls = {
-                        'w': ('x', -0.004),  # x decrease
-                        's': ('x', 0.004),   # x increase
-                        'e': ('y', -0.004),  # y decrease
-                        'd': ('y', 0.004),   # y increase
+                        'w': ('x', -XY_STEP),  # x decrease
+                        's': ('x', XY_STEP),   # x increase
+                        'e': ('y', -XY_STEP),  # y decrease
+                        'd': ('y', XY_STEP),   # y increase
                     }
                     
                     # Pitch control
@@ -338,7 +416,7 @@ def p_control_loop(robot, keyboard, target_positions, start_positions, current_x
                     print(f"Current pitch adjustment: {pitch:.3f}, wrist_flex target: {target_positions['wrist_flex']:.3f}")
             
             # Get current robot state
-            current_obs = robot.get_observation()
+            current_obs = read_observation_with_retries(robot)
             
             # Extract current joint positions
             current_positions = {}
@@ -365,7 +443,7 @@ def p_control_loop(robot, keyboard, target_positions, start_positions, current_x
             
             # Send action to robot
             if robot_action:
-                robot.send_action(robot_action)
+                send_action_with_retries(robot, robot_action)
             
             time.sleep(control_period)
             
@@ -381,7 +459,10 @@ def main():
     """Main function"""
     print("LeRobot Simplified Keyboard Control Example (P Control)")
     print("="*50)
-    
+
+    robot = None
+    keyboard = None
+
     try:
         # Import necessary modules
         # from lerobot.robots.so100_follower import SO100Follower, SO100FollowerConfig
@@ -411,11 +492,9 @@ def main():
         keyboard_config = KeyboardTeleopConfig()
         keyboard = KeyboardTeleop(keyboard_config)
         
-        # Connect devices
+        # Connect robot first; keyboard input is connected after interactive prompts.
         robot.connect()
-        keyboard.connect()
-        
-        print("Device connection successful!")
+        print("Robot connection successful!")
         
         # Ask whether to recalibrate
         while True:
@@ -433,7 +512,7 @@ def main():
         
         # Read initial joint angles
         print("Reading initial joint angles...")
-        start_obs = robot.get_observation()
+        start_obs = read_observation_with_retries(robot)
         start_positions = {}
         for key, value in start_obs.items():
             if key.endswith('.pos'):
@@ -461,7 +540,15 @@ def main():
         x0, y0 = 0.1629, 0.1131
         current_x, current_y = x0, y0
         print(f"Initialize end effector position: x={current_x:.4f}, y={current_y:.4f}")
-        
+
+        # Connect keyboard input. In headless terminals, pynput cannot attach to a DISPLAY,
+        # so fall back to direct non-blocking terminal reads.
+        keyboard.connect()
+        if not keyboard.is_connected:
+            keyboard = TerminalKeyboardInput()
+            keyboard.connect()
+
+        print("Keyboard input ready!")
         
         print("Keyboard control instructions:")
         print("- Q/A: Joint 1 (shoulder_pan) decrease/increase")
@@ -476,11 +563,11 @@ def main():
         print("Note: Robot will continuously move to target positions")
         
         # Start P control loop
-        p_control_loop(robot, keyboard, target_positions, start_positions, current_x, current_y, kp=0.5, control_freq=50)
+        p_control_loop(robot, keyboard, target_positions, start_positions, current_x, current_y, kp=0.5)
         
         # Disconnect
-        robot.disconnect()
-        keyboard.disconnect()
+        disconnect_if_connected(robot)
+        disconnect_if_connected(keyboard)
         print("Program ended")
         
     except Exception as e:
@@ -491,6 +578,9 @@ def main():
         print("2. Whether the USB port is correct")
         print("3. Whether you have sufficient permissions to access USB devices")
         print("4. Whether the robot is properly configured")
+    finally:
+        disconnect_if_connected(keyboard)
+        disconnect_if_connected(robot)
 
 if __name__ == "__main__":
     main() 

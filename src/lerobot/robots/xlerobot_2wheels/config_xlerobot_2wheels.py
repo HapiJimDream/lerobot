@@ -51,8 +51,8 @@ def xlerobot_2wheels_cameras_config() -> dict[str, CameraConfig]:
 @dataclass
 class XLerobot2WheelsConfig(RobotConfig):
     
-    port1: str = "/dev/cu.usbmodem5B141156081"  # port to connect to the bus (so101 + head camera) /dev/tty.usbmodem5B141156081
-    port2: str = "/dev/cu.usbmodem5B141120971"  # port to connect to the bus (arms + 2 wheels) /dev/tty.usbmodem5B141120971
+    port1: str = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00"  # port to connect to the bus (so101 + head camera) /dev/tty.usbmodem5B141156081
+    port2: str = "/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00"  # port to connect to the bus (arms + 2 wheels) /dev/tty.usbmodem5B141120971
     disable_torque_on_disconnect: bool = True
 
     # `max_relative_target` limits the magnitude of the relative positional target vector for safety purposes.

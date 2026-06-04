@@ -1,6 +1,33 @@
 
 
 
+# 机器人情况
+* 端口0:左臂,/dev/ttyACM0,电机1-6和舵机7-8,和头部摄像头
+    ``` 
+    bus1
+        "left_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
+        "left_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
+        "left_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
+        "left_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
+        "left_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
+        "left_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+        # head
+        "head_motor_1": Motor(7, "sts3215", norm_mode_body),
+        "head_motor_2": Motor(8, "sts3215", norm_mode_body)
+    ```
+* 端口1: 右臂,/dev/ttyACM1,电机1-6和舵机9-10,和两个轮子
+    ``` 
+    bus2  
+    "right_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
+    "right_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
+    "right_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
+    "right_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
+    "right_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
+    "right_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+    # base - only 2 wheels for differential drive
+    "base_left_wheel": Motor(9, "sts3215", MotorNormMode.RANGE_M100_100),
+    "base_right_wheel": Motor(10, "sts3215", MotorNormMode.RANGE_M100_100)
+    ```
 
 # conda activate lerobot
 

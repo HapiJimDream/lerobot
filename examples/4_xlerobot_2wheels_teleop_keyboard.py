@@ -523,8 +523,8 @@ def return_to_start_position(robot, left_arm, right_arm, head_control, duration_
 def main():
     # Teleop parameters
     FPS = 50
-    # ip = "192.168.1.123"  # This is for zmq connection
-    ip = "localhost"  # This is for local/wired connection
+    ip = "192.168.1.8"  # This is for zmq connection
+    # ip = "localhost"  # This is for local/wired connection
     # robot_name = "my_xlerobot_2wheels_pc"
     robot_name = "my_xlerobot_2wheels_lab"
 
