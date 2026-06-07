@@ -3,15 +3,18 @@
 PYTHONPATH=src python -m lerobot.robots.xlerobot_2wheels.xlerobot_2wheels_host --robot.id=my_xlerobot_2wheels_lab
 '''
 
-# To Run the teleop:
+# To Run the logging teleop:
 '''python
 cd /Users/jim/lerobot
-PYTHONPATH=src python examples/4_xlerobot_2wheels_teleop_keyboard.py
+PYTHONPATH=src python examples/4_xlerobot_2wheels_teleop_keyboard_log.py
 '''
 
 import time
 import numpy as np
 import math
+import json
+from datetime import datetime, timezone
+from pathlib import Path
 
 from lerobot.robots.xlerobot_2wheels import XLerobot2WheelsClient, XLerobot2WheelsClientConfig, XLerobot2WheelsConfig, XLerobot2Wheels
 # from lerobot.utils.robot_utils import busy_wait
@@ -495,6 +498,62 @@ class SmoothBaseController:
 smooth_controller = SmoothBaseController()
 
 
+def json_safe(value):
+    if isinstance(value, np.ndarray):
+        return {
+            "type": "ndarray",
+            "shape": list(value.shape),
+            "dtype": str(value.dtype),
+        }
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(k): json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    return value
+
+
+class JsonlZmqClientLogger:
+    def __init__(self, log_dir="examples/logs"):
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.path = self.log_dir / f"xlerobot_zmq_client_{timestamp}.jsonl"
+        self.file = self.path.open("a", encoding="utf-8")
+        print(f"[LOG] ZMQ client log: {self.path}")
+
+    def write(self, event_type, payload):
+        record = {
+            "time": datetime.now(timezone.utc).isoformat(),
+            "event": event_type,
+            "payload": json_safe(payload),
+        }
+        self.file.write(json.dumps(record, ensure_ascii=False) + "\n")
+        self.file.flush()
+
+    def close(self):
+        self.file.close()
+
+
+class LoggedRobot:
+    def __init__(self, robot, logger):
+        self._robot = robot
+        self._logger = logger
+
+    def __getattr__(self, name):
+        return getattr(self._robot, name)
+
+    def get_observation(self):
+        obs = self._robot.get_observation()
+        self._logger.write("observation_received", obs)
+        return obs
+
+    def send_action(self, action):
+        self._logger.write("action_sent", action)
+        return self._robot.send_action(action)
+
+
 def return_to_start_position(robot, left_arm, right_arm, head_control, duration_s=3.0, fps=50):
     print("[MAIN] Returning arms and head to start position before shutdown...")
     left_arm.move_to_start_position()
@@ -523,7 +582,7 @@ def return_to_start_position(robot, left_arm, right_arm, head_control, duration_
 def main():
     # Teleop parameters
     FPS = 50
-    ip = "192.168.5.202"  # This is for zmq connection
+    ip = "192.168.1.8"  # This is for zmq connection
     # ip = "localhost"  # This is for local/wired connection
     # robot_name = "my_xlerobot_2wheels_pc"
     robot_name = "my_xlerobot_2wheels_lab"
@@ -544,6 +603,9 @@ def main():
         print(robot_config)
         print(robot)
         return
+
+    zmq_logger = JsonlZmqClientLogger()
+    robot = LoggedRobot(robot, zmq_logger)
         
     init_rerun(session_name="xlerobot_2wheels_teleop")
 
@@ -557,6 +619,7 @@ def main():
             "permission to Terminal/iTerm/VS Code, then restart it."
         )
         robot.disconnect()
+        zmq_logger.close()
         return
 
     # Init the arm and head instances
@@ -720,6 +783,7 @@ def main():
             print(f"[MAIN] Failed to return to start position: {e}")
         robot.disconnect()
         keyboard.disconnect()
+        zmq_logger.close()
         print("Teleoperation ended.")
 
 if __name__ == "__main__":

@@ -1,0 +1,124 @@
+lerobot-train \
+  --dataset.repo_id=jim1234321/pick_red_box \
+  --dataset.root=/Users/jim/.cache/huggingface/lerobot/jim1234321/pick_red_box_20260606_162506 \
+  --policy.type=act \
+  --policy.repo_id=jim1234321/act_pick_red_box \
+  --output_dir=outputs/train/act_pick_red_box \
+  --job_name=act_pick_red_box \
+  --policy.device=mps \
+  --wandb.enable=false \
+  --steps=2000
+
+
+
+
+  基础版本（推荐用于测试）：
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=30
+
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 10, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=10
+  
+---
+性能优化版本（Pi5 推荐）
+
+如果推理速度不足或内存不足，使用 FP16 + RTC（实时分块）推理：
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --inference.type=rtc \
+  --inference.rtc.execution_horizon=10 \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --use_torch_compile=true
+
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --inference.type=rtc \
+  --inference.rtc.execution_horizon=5 \
+  --inference.rtc.max_guidance_weight=5.0 \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 15, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=15 \
+  --use_torch_compile=true
+
+---
+数据记录版本（推荐用于收集更多数据）
+
+边推理边保存数据：
+
+lerobot-rollout \
+  --strategy.type=sentry \
+  --strategy.upload_every_n_episodes=1 \
+  --policy.path=/home/pi/lerobot_models/act_pick_red_box \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --dataset.repo_id=jim1234321/pick_red_box_rollout \
+  --dataset.single_task="Pick the red box into the green tray" \
+  --duration=600
+
+---
+常见调整
+
+┌────────────────────┬───────────────────────────────────────────────────────┐
+│        问题        │                       解决方案                        │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 摄像头路径改变     │ 在 Pi5 上运行 ls /dev/v4l/by-path/ 确认路径           │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 推理过慢（>1s/帧） │ 加 --inference.type=rtc 和 --use_torch_compile=true   │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 内存不足           │ 减少 --fps 或使用 --inference.rtc.execution_horizon=5 │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 串口找不到         │ 运行 ls /dev/serial/by-id/ 确认端口                   │
+└────────────────────┴───────────────────────────────────────────────────────┘
+
+---
+验证步骤
+
+在 Pi5 上先做快速测试：
+
+# 1. 确认设备连接
+ls /dev/serial/by-id/usb-1a86*  # 检查机器人端口
+ls /dev/v4l/by-path/            # 检查摄像头
+
+# 2. 测试摄像头
+python -c "import cv2; cap = cv2.VideoCapture('/dev/v4l/by-path/platform-xhci-hc0'); print('OK' if cap.isOpened() else 'FAIL')"
+
+# 3. 运行推理（开始时用 --duration=30 短时间测试）
+lerobot-rollout ... --duration=30
