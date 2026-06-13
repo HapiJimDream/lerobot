@@ -77,7 +77,6 @@ from lerobot.cameras.realsense import RealSenseCameraConfig  # noqa: F401
 from lerobot.cameras.zmq import ZMQCameraConfig  # noqa: F401
 from lerobot.common.control_utils import (
     init_keyboard_listener,
-    is_headless,
     sanity_check_dataset_robot_compatibility,
 )
 from lerobot.configs import parser
@@ -116,6 +115,7 @@ from lerobot.teleoperators import (  # noqa: F401
     bi_openarm_leader,
     bi_so_leader,
     homunculus,
+    joycon,
     koch_leader,
     make_teleoperator_from_config,
     omx_leader,
@@ -482,7 +482,9 @@ def record(
         if teleop and teleop.is_connected:
             teleop.disconnect()
 
-        if not is_headless() and listener:
+        # Stop whichever listener was created (pynput or the headless stdin fallback);
+        # the stdin listener must run stop() to restore the terminal settings.
+        if listener:
             listener.stop()
 
         if cfg.dataset.push_to_hub:

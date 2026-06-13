@@ -1,7 +1,46 @@
-
-
-
 # 机器人情况
+- lead left arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00
+- lead right arm: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00
+- follower left arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00
+- follower right arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00
+
+摄像头地址: 
+主摄像头:/dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0
+左摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.1:1.0-video-index0
+右摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0
+
+摄像头测试情况: 
+✅ 摄像头 0: 640x480 @ 30.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0
+   实际设备: /dev/video0
+   frame shape: (480, 640, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam0.jpg
+✅ 摄像头 1: 1920x1080 @ 5.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index1
+   实际设备: /dev/video1
+   frame shape: (1080, 1920, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam1.jpg
+✅ 摄像头 2: 640x480 @ 30.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.1:1.0-video-index0
+   实际设备: /dev/video2
+   frame shape: (480, 640, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam2.jpg
+✅ 摄像头 3: 640x480 @ 30.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usbv2-0:1.1:1.0-video-index1
+   实际设备: /dev/video3
+   frame shape: (480, 640, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam3.jpg
+ ✅ 摄像头 4: 640x480 @ 30.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0
+   实际设备: /dev/video4
+   frame shape: (480, 640, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam4.jpg  
+✅ 摄像头 5: 640x480 @ 30.0fps
+   设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usbv2-0:1.2:1.0-video-index1
+   实际设备: /dev/video5
+   frame shape: (480, 640, 3)
+   已保存: /home/jim/AiSpace/lerobot/examples/test_cam5.jpg
+
 * 端口0:左臂,/dev/ttyACM0,电机1-6和舵机7-8,和头部摄像头
     ``` 
     bus1
@@ -124,7 +163,7 @@
     Position Control:46
         8/2: X-axis +/- (x movement)
         4/6: Y-axis +/- (y movement)
-    Special Functions:
+    Special Functions:222222222222466666d
         0: Reset to zero position
         Y: Execute rectangular trajectory
 
@@ -148,6 +187,9 @@
 2. 运行joycon控制 
     PYTHONPATH=src python examples/7_xlerobot_2wheels_teleop_joycon_pygame.py
 
+    # joycon 控制2轮机器人
+    7_xlerobot_2wheels_teleop_joycon.py
+    
     ## Joy-Con 按键映射
 
     ### 底盘控制（方向键 - 左手柄 ⬆️⬇️⬅️➡️）
@@ -216,3 +258,312 @@ L:
     L:9
     ⭕️:15
 
+# 采集前遥控测试
+#lerobot-teleoperate
+'''
+lerobot-teleoperate \
+  --robot.type=so101_follower \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.id=right_arm \
+  --robot.max_relative_target=15 \
+  --teleop.type=joycon_so101 \
+  --teleop.side=right \
+  --teleop.id=my_joycon_right
+'''
+
+# 数据采集
+```
+lerobot-record \
+  --robot.type=so101_follower \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.id=right_arm \
+  --robot.max_relative_target=15 \
+  --robot.cameras="{ right: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --teleop.type=joycon_so101 \
+  --teleop.side=right \
+  --teleop.id=my_joycon_right \
+  --display_data=false \
+  --play_sounds=false \
+  --dataset.repo_id=jim1234321/pick_red_block \
+  --dataset.single_task="Put the red block into your own basket" \
+  --dataset.num_episodes=20 \
+  --dataset.push_to_hub=false
+```
+
+```
+python /your_dir/lerobot/src/lerobot/record.py \
+  --robot.type=so101_follower \
+  --robot.port=/dev/right_arm \
+  --robot.id=robot_right_arm \
+  --robot.cameras="{ head: {type: intelrealsense, serial_number_or_name: 935422072196, width: 640, height: 480, fps: 30, use_depth: True}, right: {type: opencv, index_or_path: '/dev/video6', width: 640, height: 480, fps: 30}}" \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/ttyACM0 \
+  --teleop.id=my_leader_arm \
+  --display_data=true \
+  --dataset.repo_id=your_huggingface_id/clear_table_single_arm \
+  --dataset.num_episodes=50 \
+  --dataset.single_task="Clear the table"
+```
+
+20260507
+```
+xvfb-run lerobot-record \
+  --robot.type=so101_follower \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.id=right_arm \
+  --robot.cameras="{ head: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 640, height: 480 , fps: 30}}" \
+  --teleop.type=so101_leader \
+  --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00 \
+  --teleop.id=leader_right_arm \
+  --display_data=false \
+  --play_sounds=false \
+  --dataset.repo_id=jim1234321/pick_red_block \
+  --dataset.single_task="Put the red block into your own basket" \
+  --dataset.num_episodes=3 \
+  --dataset.push_to_hub=false \ 
+  --dataset.streaming_encoding=true \
+  --dataset.encoder_threads=2 \
+  --dataset.vcodec=auto \
+```
+
+```
+ xvfb-run lerobot-record   --robot.type=so101_follower   --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00   --robot.id=right_arm   --robot.cameras="{ head: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 640, height: 480 , fps: 30}}"   --teleop.type=so101_leader   --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00   --teleop.id=leader_right_arm   --display_data=false   --play_sounds=false   --dataset.repo_id=jim1234321/pick_red_block   --dataset.single_task="Put the red block into your own basket"   --dataset.num_episodes=5  --dataset.push_to_hub=false  --dataset.streaming_encoding=true  --dataset.encoder_threads=2  --dataset.vcodec=h264
+ ```
+
+
+# 模型训练
+```
+lerobot-train \
+  --dataset.repo_id=jim1234321/pick_red_box \
+  --dataset.root=/Users/jim/.cache/huggingface/lerobot/jim1234321/pick_red_box_20260606_162506 \
+  --policy.type=act \
+  --policy.repo_id=jim1234321/act_pick_red_box \
+  --output_dir=outputs/train/act_pick_red_box \
+  --job_name=act_pick_red_box \
+  --policy.device=mps \
+  --wandb.enable=false \
+  --steps=2000
+```
+# 模型评估
+
+
+# 模型加载测试
+
+```python
+import torch
+from lerobot.configs import PreTrainedConfig
+from lerobot.policies.factory import get_policy_class
+
+model_path = "outputs/train/act_pick_red_box/checkpoints/last/pretrained_model"
+
+print("=" * 60)
+print("ACT 模型推理测试")
+print("=" * 60)
+
+config = PreTrainedConfig.from_pretrained(model_path)
+print(f"\n📋 策略类型: {config.type}")
+print(f"📋 设备: {config.device}")
+
+print(f"\n📥 输入特征 (模型需要的观测数据):")
+for name, feat in config.input_features.items():
+    print(f"   - {name}: shape={feat.shape}, type={feat.type}")
+
+print(f"\n📤 输出特征 (模型输出的动作):")
+for name, feat in config.output_features.items():
+    print(f"   - {name}: shape={feat.shape}, type={feat.type}")
+
+print("\n⏳ 加载模型权重...")
+policy_class = get_policy_class(config.type)
+policy = policy_class.from_pretrained(model_path, config=config)
+policy.eval()
+policy.reset()
+
+params = sum(p.numel() for p in policy.parameters())
+print(f"✅ 模型加载成功！参数量: {params:,}")
+
+batch = {}
+for name, feat in config.input_features.items():
+    batch[name] = torch.zeros(1, *feat.shape)
+
+print(f"\n🔧 Dummy 输入 (batch):")
+for k, v in batch.items():
+    print(f"   {k}: tensor shape={list(v.shape)}, dtype={v.dtype}")
+
+print("\n🧠 运行推理 (predict_action_chunk)...")
+with torch.no_grad():
+    action_chunk = policy.predict_action_chunk(batch)
+
+print(f"\n📊 推理输出 (action chunk):")
+print(f"   shape: {list(action_chunk.shape)}")
+print(f"   dtype: {action_chunk.dtype}")
+print(f"   值范围: [{action_chunk.min().item():.4f}, {action_chunk.max().item():.4f}]")
+print(f"   均值: {action_chunk.mean().item():.6f}")
+print(f"   标准差: {action_chunk.std().item():.6f}")
+
+print(f"\n📊 前3个 action step 的具体数值:")
+for i in range(min(3, action_chunk.shape[1])):
+    step = action_chunk[0, i]
+    print(f"   Step {i}: {step.tolist()}")
+
+policy.reset()
+print(f"\n🧠 运行 select_action (单步动作)...")
+with torch.no_grad():
+    action = policy.select_action(batch)
+
+print(f"\n📊 单步动作输出:")
+print(f"   shape: {list(action.shape)}")
+print(f"   值: {action.tolist()}")
+
+if hasattr(config, 'output_features'):
+    for name, feat in config.output_features.items():
+        if hasattr(feat, 'names') and feat.names:
+            print(f"\n📋 动作维度名称 ({name}):")
+            for idx, n in enumerate(feat.names):
+                val = action[idx].item() if idx < action.shape[0] else "N/A"
+                print(f"   [{idx}] {n}: {val:.4f}")
+
+print("\n" + "=" * 60)
+print("测试完成！")
+print("=" * 60)
+```
+
+# 模型推理运行
+  基础版本（推荐用于测试）：
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=30
+
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 10, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=10
+  
+---
+性能优化版本（Pi5 推荐）
+
+如果推理速度不足或内存不足，使用 FP16 + RTC（实时分块）推理：
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --inference.type=rtc \
+  --inference.rtc.execution_horizon=10 \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --use_torch_compile=true
+
+
+lerobot-rollout \
+  --strategy.type=base \
+  --policy.path=/home/jim/AiSpace/models/pretrained_model/ \
+  --inference.type=rtc \
+  --inference.rtc.execution_horizon=5 \
+  --inference.rtc.max_guidance_weight=5.0 \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 15, rotation: 90}}" \
+  --policy.device=cpu \
+  --task="Pick the red box into the green tray" \
+  --duration=60 \
+  --fps=15 \
+  --use_torch_compile=true
+
+---
+数据记录版本（推荐用于收集更多数据）
+
+边推理边保存数据：
+
+lerobot-rollout \
+  --strategy.type=sentry \
+  --strategy.upload_every_n_episodes=1 \
+  --policy.path=/home/pi/lerobot_models/act_pick_red_box \
+  --robot.type=so101_follower \
+  --robot.id=right_arm \
+  --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+  --robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}" \
+  --policy.device=cpu \
+  --dataset.repo_id=jim1234321/pick_red_box_rollout \
+  --dataset.single_task="Pick the red box into the green tray" \
+  --duration=600
+
+---
+常见调整
+
+┌────────────────────┬───────────────────────────────────────────────────────┐
+│        问题        │                       解决方案                        │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 摄像头路径改变     │ 在 Pi5 上运行 ls /dev/v4l/by-path/ 确认路径           │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 推理过慢（>1s/帧） │ 加 --inference.type=rtc 和 --use_torch_compile=true   │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 内存不足           │ 减少 --fps 或使用 --inference.rtc.execution_horizon=5 │
+├────────────────────┼───────────────────────────────────────────────────────┤
+│ 串口找不到         │ 运行 ls /dev/serial/by-id/ 确认端口                   │
+└────────────────────┴───────────────────────────────────────────────────────┘
+
+---
+验证步骤
+
+在 Pi5 上先做快速测试：
+
+# 1. 确认设备连接
+ls /dev/serial/by-id/usb-1a86*  # 检查机器人端口
+ls /dev/v4l/by-path/            # 检查摄像头
+
+# 2. 测试摄像头
+python -c "import cv2; cap = cv2.VideoCapture('/dev/v4l/by-path/platform-xhci-hc0'); print('OK' if cap.isOpened() else 'FAIL')"
+
+# 3. 运行推理（开始时用 --duration=30 短时间测试）
+lerobot-rollout ... --duration=30
+
+
+
+
+#lerobot-calibrate 
+## so101_follower
+ lerobot-calibrate --robot.type=so101_follower --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00 --robot.id=left_arm
+
+## so101_leader
+ lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00 --teleop.id=leader_right_arm
+ lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00 --teleop.id=leader_left_arm
+
+## right
+ lerobot-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00 \
+    --robot.id=right_arm \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00 \
+    --teleop.id=leader_right_arm
+
+## left
+lerobot-teleoperate \
+    --robot.type=so101_follower \
+    --robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00 \
+    --robot.id=left_arm \
+    --teleop.type=so101_leader \
+    --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00 \
+    --teleop.id=leader_left_arm

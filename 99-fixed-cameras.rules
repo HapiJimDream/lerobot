@@ -1,0 +1,14 @@
+# XLeRobot 摄像头固定符号链接规则
+# 三个摄像头型号/序列号相同 (05a3:9230, serial=USB2.0_CAM1),无法用 serial 区分,
+# 只能用物理 USB 口 (ID_PATH) 区分;且必须过滤掉非 capture 的 metadata 节点。
+# 用法: 代码里直接用 /dev/camLeft 等
+# 注意: 别名绑定的是 USB 口,每个摄像头必须始终插同一个口。
+
+# 左臂 (USB 口 1.1)
+SUBSYSTEM=="video4linux", ENV{ID_VENDOR_ID}=="05a3", ENV{ID_MODEL_ID}=="9230", ENV{ID_V4L_CAPABILITIES}=="*:capture:*", ENV{ID_PATH}=="*usb-0:1.1:1.0", SYMLINK+="camLeft", MODE="0666"
+
+# 右臂 (USB 口 1.2)
+SUBSYSTEM=="video4linux", ENV{ID_VENDOR_ID}=="05a3", ENV{ID_MODEL_ID}=="9230", ENV{ID_V4L_CAPABILITIES}=="*:capture:*", ENV{ID_PATH}=="*usb-0:1.2:1.0", SYMLINK+="camRight", MODE="0666"
+
+# 头部 (USB 口 2)
+SUBSYSTEM=="video4linux", ENV{ID_VENDOR_ID}=="05a3", ENV{ID_MODEL_ID}=="9230", ENV{ID_V4L_CAPABILITIES}=="*:capture:*", ENV{ID_PATH}=="*usb-0:2:1.0", SYMLINK+="camHead", MODE="0666"

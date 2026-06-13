@@ -18,11 +18,21 @@ from __future__ import annotations
 # Utilities
 ########################################################################################
 import logging
-import traceback
+import os
+import select
+import sys
+import threading
 from contextlib import nullcontext
 from copy import copy
 from functools import cache
 from typing import TYPE_CHECKING, Any
+
+try:
+    import termios
+    import tty
+except ImportError:  # Non-Unix platforms (e.g. Windows) — stdin key control unavailable.
+    termios = None
+    tty = None
 
 import numpy as np
 import torch
@@ -58,15 +68,11 @@ def is_headless():
         import pynput  # noqa
 
         return False
-    except Exception:
-        print(
-            "Error trying to import pynput. Switching to headless mode. "
-            "As a result, the video stream from the cameras won't be shown, "
-            "and you won't be able to change the control flow with keyboards. "
-            "For more info, see traceback below.\n"
-        )
-        traceback.print_exc()
-        print()
+    except Exception as e:
+        # Expected on a bare TTY or SSH session (no X server). The caller falls back
+        # to the terminal-based key listener, so this is a normal degradation, not an
+        # error — keep it to a single debug line instead of a scary traceback.
+        logging.debug(f"pynput unavailable, switching to headless mode: {e}")
         return True
 
 
@@ -121,6 +127,85 @@ def predict_action(
     return action
 
 
+class _StdinKeyboardListener:
+    """Reads arrow keys / Esc directly from an interactive terminal (TTY).
+
+    Fallback for headless setups (Raspberry Pi text console, SSH session) where
+    ``pynput`` cannot run because there is no X server. Mirrors the key bindings of
+    the pynput-based listener so the recording loop behaves identically:
+
+        Right arrow -> exit early (save current episode, go to next)
+        Left arrow  -> re-record the current episode
+        Esc         -> stop recording
+
+    The terminal is switched to cbreak mode (echo + canonical input off) so the raw
+    escape sequences are not printed and keys are delivered without pressing Enter.
+    ``ISIG`` is left enabled, so Ctrl-C still aborts. The original terminal settings
+    are always restored in :meth:`stop`.
+    """
+
+    def __init__(self, events):
+        self.events = events
+        self._fd = sys.stdin.fileno()
+        self._old_term = termios.tcgetattr(self._fd)
+        self._stop_event = threading.Event()
+        tty.setcbreak(self._fd)
+        self._thread = threading.Thread(
+            target=self._read_loop, daemon=True, name="stdin_keyboard_listener"
+        )
+        self._thread.start()
+
+    def _read_loop(self):
+        while not self._stop_event.is_set():
+            # Poll with a timeout so the loop can notice stop_event promptly.
+            ready, _, _ = select.select([self._fd], [], [], 0.1)
+            if not ready:
+                continue
+            ch = os.read(self._fd, 1)
+            if ch != b"\x1b":  # We only act on escape sequences and bare Esc.
+                continue
+
+            # ESC may be a bare Escape or the prefix of an arrow-key sequence
+            # (ESC [ C / ESC [ D). Briefly wait to disambiguate.
+            ready, _, _ = select.select([self._fd], [], [], 0.05)
+            if not ready:
+                print("Escape key pressed. Stopping data recording...")
+                self.events["stop_recording"] = True
+                self.events["exit_early"] = True
+                continue
+
+            seq = os.read(self._fd, 2)
+            if seq == b"[C":  # Right arrow
+                print("Right arrow key pressed. Exiting loop...")
+                self.events["exit_early"] = True
+            elif seq == b"[D":  # Left arrow
+                print("Left arrow key pressed. Exiting loop and rerecord the last episode...")
+                self.events["rerecord_episode"] = True
+                self.events["exit_early"] = True
+
+    def stop(self):
+        self._stop_event.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=1.0)
+        # Restore the terminal to its original (canonical, echoing) state.
+        termios.tcsetattr(self._fd, termios.TCSADRAIN, self._old_term)
+
+
+def _init_stdin_listener(events):
+    """Create a terminal-based key listener for headless/TTY setups.
+
+    Returns a listener exposing ``.stop()``, or ``None`` if a terminal listener cannot
+    be used (no termios support, or stdin is not an interactive TTY — e.g. piped input).
+    """
+    if termios is None or tty is None or not sys.stdin.isatty():
+        return None
+    try:
+        return _StdinKeyboardListener(events)
+    except (termios.error, OSError) as e:
+        logging.warning(f"Could not initialize stdin keyboard listener: {e}")
+        return None
+
+
 def init_keyboard_listener():
     """
     Initializes a non-blocking keyboard listener for real-time user interaction.
@@ -143,10 +228,19 @@ def init_keyboard_listener():
     events["stop_recording"] = False
 
     if is_headless():
-        logging.warning(
-            "Headless environment detected. On-screen cameras display and keyboard inputs will not be available."
-        )
-        listener = None
+        # No X server (e.g. Pi text console or SSH), so pynput can't run. Fall back to
+        # reading the controlling terminal directly, which works on a bare TTY and over SSH.
+        listener = _init_stdin_listener(events)
+        if listener is not None:
+            logging.info(
+                "Headless environment detected. Using terminal key control: "
+                "Right arrow = next episode, Left arrow = re-record, Esc = stop."
+            )
+        else:
+            logging.warning(
+                "Headless environment detected and no interactive terminal available. "
+                "On-screen cameras display and keyboard inputs will not be available."
+            )
         return listener, events
 
     # Only import pynput if not in a headless environment

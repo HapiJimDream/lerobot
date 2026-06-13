@@ -90,6 +90,7 @@ from lerobot.teleoperators import (  # noqa: F401
     bi_so_leader,
     gamepad,
     homunculus,
+    joycon,
     keyboard,
     koch_leader,
     make_teleoperator_from_config,
