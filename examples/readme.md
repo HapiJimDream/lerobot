@@ -1,81 +1,49 @@
 # 机器人情况
 
+leader_left_arm
+<pre><code>/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00</code><button onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent)">复制</button></pre>
+```python
+/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00
+```
 - leader_left_arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61033431-if00
 - leader_right_arm: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00
-- left_arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00
-- right_arm : /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00
-
-摄像头地址:
-主摄像头:/dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0
-左摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.1:1.0-video-index0
-右摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0
-
-/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1:1.0-video-index0
-
-摄像头测试情况:
-✅ 摄像头 0: 640x480 @ 30.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0
-实际设备: /dev/video0
-frame shape: (480, 640, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam0.jpg
-✅ 摄像头 1: 1920x1080 @ 5.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index1
-实际设备: /dev/video1
-frame shape: (1080, 1920, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam1.jpg
-✅ 摄像头 2: 640x480 @ 30.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.1:1.0-video-index0
-实际设备: /dev/video2
-frame shape: (480, 640, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam2.jpg
-✅ 摄像头 3: 640x480 @ 30.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usbv2-0:1.1:1.0-video-index1
-实际设备: /dev/video3
-frame shape: (480, 640, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam3.jpg
-✅ 摄像头 4: 640x480 @ 30.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0
-实际设备: /dev/video4
-frame shape: (480, 640, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam4.jpg✅ 摄像头 5: 640x480 @ 30.0fps
-设备路径: /dev/v4l/by-path/platform-xhci-hcd.1-usbv2-0:1.2:1.0-video-index1
-实际设备: /dev/video5
-frame shape: (480, 640, 3)
-已保存: /home/jim/AiSpace/lerobot/examples/test_cam5.jpg
-
-* 端口0:左臂,/dev/ttyACM0,电机1-6和舵机7-8,和头部摄像头
-  ```
-  bus1
-      "left_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
-      "left_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
-      "left_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
-      "left_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
-      "left_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
-      "left_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
-      # head
-      "head_motor_1": Motor(7, "sts3215", norm_mode_body),
-      "head_motor_2": Motor(8, "sts3215", norm_mode_body)
-  ```
-* 端口1: 右臂,/dev/ttyACM1,电机1-6和舵机9-10,和两个轮子
-  ```
-  bus2  
-  "right_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
-  "right_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
-  "right_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
-  "right_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
-  "right_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
-  "right_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
-  # base - only 2 wheels for differential drive
-  "base_left_wheel": Motor(9, "sts3215", MotorNormMode.RANGE_M100_100),
-  "base_right_wheel": Motor(10, "sts3215", MotorNormMode.RANGE_M100_100)
-  ```
-
-# 常用指令
-
-- conda activate lerobot
-- lerobot-find-port
-- lsof -nP -iTCP:5555 -sTCP:LISTEN
-
+- left_arm
+  - 串口: /dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14115608-if00
+  - 组成: 电机1-6和舵机7-8,和头部摄像头
+  - ```
+    bus1
+        "left_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
+        "left_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
+        "left_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
+        "left_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
+        "left_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
+        "left_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+        # head
+        "head_motor_1": Motor(7, "sts3215", norm_mode_body),
+        "head_motor_2": Motor(8, "sts3215", norm_mode_body)
+    ```
+- right_arm
+  - 串口,/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00
+  - 组成,电机1-6和舵机9-10,和两个轮子
+  - ```
+    bus2  
+    "right_arm_shoulder_pan": Motor(1, "sts3215", norm_mode_body),
+    "right_arm_shoulder_lift": Motor(2, "sts3215", norm_mode_body),
+    "right_arm_elbow_flex": Motor(3, "sts3215", norm_mode_body),
+    "right_arm_wrist_flex": Motor(4, "sts3215", norm_mode_body),
+    "right_arm_wrist_roll": Motor(5, "sts3215", norm_mode_body),
+    "right_arm_gripper": Motor(6, "sts3215", MotorNormMode.RANGE_0_100),
+    # base - only 2 wheels for differential drive
+    "base_left_wheel": Motor(9, "sts3215", MotorNormMode.RANGE_M100_100),
+    "base_right_wheel": Motor(10, "sts3215", MotorNormMode.RANGE_M100_100)
+    ```
+- 主摄像头:/dev/v4l/by-path/platform-xhci-hcd.0-usb-0:1:1.0-video-index0
+- 左摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.1:1.0-video-index0
+- 右摄像头:/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0
+  
+# 标定
+- lerobot-calibrate --teleop.type=so101_leader --teleop.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B61034984-if00 --teleop.id=leader_right_arm
+  
 # 运行单个手臂控制
 
 1. 右手臂校准文件设置
@@ -288,6 +256,44 @@ lerobot-teleoperate
 --teleop.id=my_joycon_right
 '''
 
+# 双臂配置
+- leader
+```
+lerobot-calibrate \
+    --teleop.type=bi_so_leader \
+    --teleop.left_arm_config.port=/dev/ttyLeaderLeft \
+    --teleop.right_arm_config.port=/dev/ttyLeaderRight \
+    --teleop.id=bimanual_leader
+```
+- follower
+```foll
+lerobot-calibrate \
+    --robot.type=bi_so_follower \
+    --robot.left_arm_config.port=/dev/ttyLeftArm \
+    --robot.right_arm_config.port=/dev/ttyRightArm \
+    --robot.id=bimanual_follower
+```
+# 双臂遥操作
+```
+lerobot-teleoperate \
+  --robot.type=bi_so_follower \
+  --robot.left_arm_config.port=/dev/ttyLeftArm \
+  --robot.right_arm_config.port=/dev/ttyRightArm \
+  --robot.id=bimanual_follower \
+   --robot.left_arm_config.cameras="{
+     head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},
+     left: {type: opencv, index_or_path: '/dev/camLeft', width: 640, height: 480 , fps: 30}
+  }" \
+  --robot.right_arm_config.cameras="{
+     right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}
+  }" \
+  --teleop.type=bi_so_leader \
+  --teleop.left_arm_config.port=/dev/ttyLeaderLeft \
+  --teleop.right_arm_config.port=/dev/ttyLeaderRight \
+  --teleop.id=bimanual_leader \
+  --display_data=false
+```
+
 # 数据采集
 
 ```
@@ -349,19 +355,263 @@ xvfb-run lerobot-record \
 lerobot-record   --robot.type=so101_follower   --robot.port=/dev/ttyRightArm  --robot.id=right_arm   --robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}"   --teleop.type=so101_leader   --teleop.port=/dev/ttyLeaderRight   --teleop.id=leader_right_arm   --display_data=true   --play_sounds=false   --dataset.repo_id=jim1234321/pick_red_block0613   --dataset.single_task="Put the red block into your own basket"   --dataset.num_episodes=3  --dataset.push_to_hub=false  --dataset.streaming_encoding=true  --dataset.encoder_threads=3  --dataset.vcodec=h264  --dataset.reset_time_s=30  --dataset.episode_time_s=30  --display_ip=192.168.5.201 --display_port=9876
 ```
 
+# 双臂采集
+
+### 任务 1：Place the object in the tray
+Cube Stacking:Place large cube on coaster. Then place small cube on large cube
+```
+lerobot-record \
+  --robot.type=bi_so_follower \
+  --robot.left_arm_config.port=/dev/ttyLeftArm \
+  --robot.right_arm_config.port=/dev/ttyRightArm \
+  --robot.id=bimanual_follower \
+  --robot.left_arm_config.cameras="{
+      head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},
+      left: {type: opencv, index_or_path: '/dev/camLeft', width: 640, height: 480 , fps: 30}
+  }" \
+  --robot.right_arm_config.cameras="{
+      right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}
+  }" \
+  --teleop.type=bi_so_leader \
+  --teleop.left_arm_config.port=/dev/ttyLeaderLeft \
+  --teleop.right_arm_config.port=/dev/ttyLeaderRight \
+  --teleop.id=bimanual_leader \
+  --display_data=false \
+  --play_sounds=false \
+  --dataset.repo_id=jim1234321/cube_stacking \
+  --dataset.single_task="Place large cube on coaster. Then place small cube on large cube" \
+  --dataset.num_episodes=3 \
+  --dataset.push_to_hub=false \
+  --dataset.streaming_encoding=true \
+  --dataset.encoder_threads=3 \
+  --dataset.vcodec=h264 \
+  --dataset.reset_time_s=30 \
+  --dataset.episode_time_s=60
+
+```
+
+### 任务 2：抓取蓝色方块（追加到同一数据集）
+lerobot-record \
+  --robot.type=so101_follower \
+  --dataset.repo_id=${HF_USER}/multi_task_demo \
+  --dataset.single_task="pick up the blue cube" \  # 不同任务描述
+  --dataset.num_episodes=10
+
+# 双臂训练
+
+```
+export LD_LIBRARY_PATH=/home/oosv5xu-/miniforge3/envs/lerobot/lib:$LD_LIBRARY_PATH
+
+  lerobot-train \
+      --policy.path=lerobot/smolvla_base \
+      --dataset.repo_id=jim1234321/smolvla_multi_task \
+      --dataset.root=/home/oosv5xu-/AiSpace/datasets/bimanual_multi_task_merged \
+      --batch_size=16 \
+      --steps=25000 \
+      --output_dir=outputs/train/smolvla_multi_task \
+      --job_name=smolvla_multi_task \
+      --policy.device=cuda \
+      --wandb.enable=true \
+      --policy.repo_id=jim1234321/smolvla_multi_task \
+      --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": 
+  "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}'
+```
+
+- cube_stacking
+```
+  accelerate launch --multi_gpu --num_processes=2 \
+  -m lerobot.scripts.lerobot_train \
+  --policy.path=lerobot/smolvla_base \
+  --dataset.repo_id=jim1234321/cube_stacking \
+  --dataset.root=/root/autodl-tmp/aidata/cube_stacking_merged \
+  --batch_size=32 \
+  --steps=25000 \
+  --save_freq=5000 \
+  --output_dir=/root/autodl-tmp/outputs/train/cube_stacking \
+  --job_name=cube_stacking \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --policy.repo_id=jim1234321/cube_stacking \
+  --policy.push_to_hub=false \
+  --tolerance_s=0.04 \
+  --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}' \
+  2>&1 | tee /root/autodl-tmp/outputs/train/train_cube_stacking.log
+```
+
+
+```
+accelerate launch --multi_gpu --num_processes=2 \
+  -m lerobot.scripts.lerobot_train \
+  --policy.type=act \
+  --dataset.repo_id=jim1234321/cube_stacking \
+  --dataset.root=/root/autodl-tmp/aidata/cube_stacking_merged \
+  --batch_size=32 \
+  --steps=25000 \
+  --save_freq=5000 \
+  --output_dir=/root/autodl-tmp/outputs/train/cube_stacking_act \
+  --job_name=cube_stacking \
+  --policy.device=cuda \
+  --wandb.enable=true \
+  --policy.repo_id=jim1234321/cube_stacking_act \
+  --policy.push_to_hub=false \
+  --tolerance_s=0.04 \
+  --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}' \
+  2>&1 | tee /root/autodl-tmp/outputs/train/train_cube_stacking_act.log
+```
+
+# 数据集合并
+
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_073320
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074041
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074823
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_075559
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_082103
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_083421
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_202534
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203157
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203844
+
+
+大左右小
+0733:第二排中间
+0740:第一排中间
+0748:第一排外侧
+0755:第三排中间
+cube_stacking_20260630_082103:第三排外侧
+cube_stacking_20260630_083421:第二排外侧
+大右左小
+cube_stacking_20260630_202534:第一排中间
+cube_stacking_20260630_203157:第二排内侧
+cube_stacking_20260630_203844:第三排中间
+:第三排内侧
+
+
+## smolvla数据集合并
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074041
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_075559
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_083421
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_202534
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203157
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203844
+
+lerobot-edit-dataset \
+    --new_repo_id jim1234321/cube_stacking_merged \
+    --new_root /Users/jim/AiSpace/aidata/cube_stacking_merged \
+    --operation.type merge \
+    --operation.repo_ids "['cube_stacking_20260630_074041', 'cube_stacking_20260630_075559', 'cube_stacking_20260630_083421', 'cube_stacking_20260630_202534', 'cube_stacking_20260630_203157', 'cube_stacking_20260630_203844']" \
+    --operation.roots "['/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074041', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_075559', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_083421', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_202534', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203157', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203844']"
+
+
+# ssh隧道
+ssh -N -L 8080:127.0.0.1:8080 -p 27962 root@connect.bjb2.seetacloud.com
+
+# 运行推理服务
+uv run python -m lerobot.async_inference.policy_server \
+     --host=0.0.0.0 \
+     --port=8080
+
+# 双臂推理
+
+```
+ python -m lerobot.async_inference.robot_client \
+      --server_address=127.0.0.1:8080 \
+      --robot.type=bi_so_follower \
+      --robot.left_arm_config.port=/dev/ttyLeftArm \
+      --robot.right_arm_config.port=/dev/ttyRightArm \
+      --robot.id=bimanual_follower \
+      --robot.left_arm_config.cameras="{
+        head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480, fps: 30},
+        left: {type: opencv, index_or_path: '/dev/camLeft', width: 640, height: 480, fps: 30}
+      }" \
+      --robot.right_arm_config.cameras="{
+        right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480, fps: 30}
+      }" \
+      --task="Place the object in the tray" \
+      --policy_type=smolvla \
+      --pretrained_name_or_path=/root/autodl-tmp/smolvla_multi_task/checkpoints/025000/pretrained_model_infer/ \
+      --actions_per_chunk=50 \
+      --chunk_size_threshold=0.5 \
+      --aggregate_fn_name=weighted_average \
+      --policy_device=cuda \
+      --debug_visualize_queue_size=True
+
+```
+
+/root/autodl-tmp/smolvla_multi_task/checkpoints/020000/pretrained_model/
+/root/autodl-tmp/smolvla_multi_task/checkpoints/025000/pretrained_model_infer/
+Place the object in the tray
+take out object from the tray
+Place large cube on coaster. Then place small cube on large cube
+```
+python -m lerobot.async_inference.robot_client \
+      --server_address=127.0.0.1:8080 \
+      --robot.type=bi_so_follower \
+      --robot.left_arm_config.port=/dev/ttyLeftArm \
+      --robot.right_arm_config.port=/dev/ttyRightArm \
+      --robot.id=bimanual_follower \
+      --robot.left_arm_config.cameras="{
+        head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480, fps: 30},
+        left: {type: opencv, index_or_path: '/dev/camLeft', width: 640, height: 480, fps: 30}
+      }" \
+      --robot.right_arm_config.cameras="{
+        right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480, fps: 30}
+      }" \
+      --task="Place large cube on coaster. Then place small cube on large cube" \
+      --policy_type=smolvla \
+      --pretrained_name_or_path=/root/autodl-tmp/outputs/train/cube_stacking/checkpoints/025000/pretrained_model \
+      --actions_per_chunk=50 \
+      --chunk_size_threshold=0.5 \
+      --aggregate_fn_name=weighted_average \
+      --policy_device=cuda \
+      --debug_visualize_queue_size=True \
+      --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}'
+
+```
+
+# 双臂act推理
+```
+python -m lerobot.async_inference.robot_client \
+      --server_address=127.0.0.1:8080 \
+      --robot.type=bi_so_follower \
+      --robot.left_arm_config.port=/dev/ttyLeftArm \
+      --robot.right_arm_config.port=/dev/ttyRightArm \
+      --robot.id=bimanual_follower \
+      --robot.left_arm_config.cameras="{
+        head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480, fps: 30},
+        left: {type: opencv, index_or_path: '/dev/camLeft', width: 640, height: 480, fps: 30}
+      }" \
+      --robot.right_arm_config.cameras="{
+        right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480, fps: 30}
+      }" \
+      --task="Place large cube on coaster. Then place small cube on large cube" \
+      --policy_type=act \
+      --pretrained_name_or_path=/root/autodl-tmp/outputs/train/cube_stacking_act/checkpoints/025000/pretrained_model \
+      --actions_per_chunk=50 \
+      --chunk_size_threshold=0.5 \
+      --aggregate_fn_name=weighted_average \
+      --policy_device=cuda \
+      --debug_visualize_queue_size=True
+
+```
+
+
+
 # 模型训练
 
 ```
-lerobot-train \
-  --dataset.repo_id=jim1234321/pick_red_box \
-  --dataset.root=/Users/jim/.cache/huggingface/lerobot/jim1234321/pick_red_box_20260606_162506 \
-  --policy.type=act \
-  --policy.repo_id=jim1234321/act_pick_red_box \
-  --output_dir=outputs/train/act_pick_red_box \
-  --job_name=act_pick_red_box \
-  --policy.device=mps \
-  --wandb.enable=false \
-  --steps=2000
+export LD_LIBRARY_PATH=/home/oosv5xu-/miniforge3/envs/lerobot/lib:$LD_LIBRARY_PATH
+
+  lerobot-train \
+    --dataset.repo_id=jim1234321/pickred \
+    --dataset.root=/home/oosv5xu-/AiSpace/pick_red_block0613_10_20260613_122119 \
+    --policy.type=act \
+    --policy.repo_id=jim1234321/pickred \
+    --output_dir=outputs/train/pick_red_block \
+    --batch_size=16 \
+    --job_name=pick_red_block \
+    --policy.device=cuda \
+    --wandb.enable=true \
+    --steps=30000 
 ```
 
 # 模型评估
@@ -450,17 +700,31 @@ print("=" * 60)
 
 基础版本（推荐用于测试）：
 
+```
+lerobot-rollout \
+--strategy.type=base \
+--policy.path=/home/jim/AiSpace/train/030000/pretrained_model  \
+--robot.type=so101_follower \
+--robot.id=right_arm \
+--robot.port=/dev/ttyRightArm \
+--robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}"  \
+--policy.device=cpu  \
+--task="Pick the red block"  \
+--duration=120  \
+--fps=15
+```
+
 lerobot-rollout
 --strategy.type=base
---policy.path=/home/jim/AiSpace/models/pretrained_model/
+--policy.path=/home/jim/AiSpace/train/030000/pretrained_model
 --robot.type=so101_follower
 --robot.id=right_arm
---robot.port=/dev/serial/by-id/usb-1a86_USB_Single_Serial_5B14112097-if00
---robot.cameras="{ wrist: {type: opencv, index_or_path: '/dev/v4l/by-path/platform-xhci-hcd.1-usb-0:1.2:1.0-video-index0', width: 480, height: 640, fps: 30, rotation: 90}}"
+--robot.port=/dev/ttyRightArm
+--robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}"
 --policy.device=cpu
---task="Pick the red box into the green tray"
---duration=60
---fps=30
+--task="Pick the red block"
+--duration=90
+--fps=15
 
 lerobot-rollout
 --strategy.type=base
