@@ -23,11 +23,9 @@ if [ ${#CAMS[@]} -eq 0 ]; then
 fi
 
 SIZE="${SIZE:-640x480}"          # 分辨率
-OUTDIR="${OUTDIR:-examples}"     # 输出目录
 FMT="${FMT:-mjpeg}"              # 输入像素格式
 TIMEOUT="${TIMEOUT:-15}"         # 单个摄像头超时(秒)
 
-mkdir -p "$OUTDIR"
 
 rc_all=0
 for cam in "${CAMS[@]}"; do
@@ -38,7 +36,7 @@ for cam in "${CAMS[@]}"; do
     continue
   fi
   real=$(readlink -f "$dev")
-  out="$OUTDIR/snap_$cam.jpg"
+  out="snap_$cam.jpg"
   echo "=== $cam ($real) -> $out ==="
   if timeout "$TIMEOUT" ffmpeg -y -loglevel error \
        -f v4l2 -input_format "$FMT" -video_size "$SIZE" \

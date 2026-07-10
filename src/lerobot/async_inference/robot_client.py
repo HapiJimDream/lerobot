@@ -63,6 +63,7 @@ from lerobot.transport import (
     services_pb2_grpc,  # type: ignore
 )
 from lerobot.transport.utils import grpc_channel_options, send_bytes_in_chunks
+from lerobot.utils.constants import OBS_IMAGES
 from lerobot.utils.import_utils import register_third_party_plugins
 
 from .configs import RobotClientConfig
@@ -96,6 +97,23 @@ class RobotClient:
         self.robot.connect()
 
         lerobot_features = map_robot_keys_to_lerobot_features(self.robot)
+
+        # Optional feature renaming so the keys match the names the policy was trained with
+        # (e.g. when the dataset was trained with `--rename_map`). We rename the LeRobot
+        # feature keys sent to the server, and the matching raw-observation camera labels
+        # (the feature key without the "observation.images." prefix) before sending.
+        self._rename_map = config.rename_map
+        if self._rename_map:
+            lerobot_features = {
+                self._rename_map.get(key, key): value for key, value in lerobot_features.items()
+            }
+            self._raw_rename_map = {
+                old.removeprefix(f"{OBS_IMAGES}."): new.removeprefix(f"{OBS_IMAGES}.")
+                for old, new in self._rename_map.items()
+                if old.startswith(f"{OBS_IMAGES}.")
+            }
+        else:
+            self._raw_rename_map = {}
 
         # Use environment variable if server_address is not provided in config
         self.server_address = config.server_address
@@ -411,6 +429,10 @@ class RobotClient:
             start_time = time.perf_counter()
 
             raw_observation: RawObservation = self.robot.get_observation()
+            if self._raw_rename_map:
+                raw_observation = {
+                    self._raw_rename_map.get(key, key): value for key, value in raw_observation.items()
+                }
             raw_observation["task"] = task
 
             with self.latest_action_lock:

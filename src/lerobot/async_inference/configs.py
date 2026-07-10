@@ -121,6 +121,15 @@ class RobotClientConfig:
     # Task instruction for the robot to execute (e.g., 'fold my tshirt')
     task: str = field(default="", metadata={"help": "Task instruction for the robot to execute"})
 
+    # Optional renaming of observation feature keys so they match the names the policy was
+    # trained with. Keyed by LeRobot feature name, e.g.
+    # {"observation.images.left_head": "observation.images.camera1"}. This mirrors the
+    # `--rename_map` flag used at training time, so the exact same map can be reused here.
+    rename_map: dict[str, str] = field(
+        default_factory=dict,
+        metadata={"help": "Map of observation feature keys to rename before sending to the server"},
+    )
+
     # Network configuration
     server_address: str = field(default="localhost:8080", metadata={"help": "Server address to connect to"})
 
@@ -200,4 +209,5 @@ class RobotClientConfig:
             "task": self.task,
             "debug_visualize_queue_size": self.debug_visualize_queue_size,
             "aggregate_fn_name": self.aggregate_fn_name,
+            "rename_map": self.rename_map,
         }
