@@ -1,0 +1,7 @@
+DorayakiLin@@@so100_pick_cube_in_box@@@meta@@@info.json
+DorayakiLin@@@so100_pick_cube_in_box@@@meta@@@tasks.parquet
+DorayakiLin@@@so100_pick_cube_in_box@@@meta@@@episodes@@@chunk-000@@@file-000.parquet
+DorayakiLin@@@so100_pick_cube_in_box@@@meta@@@stats.json
+DorayakiLin@@@so100_pick_cube_in_box@@@data@@@chunk-000@@@file-000.parquet
+DorayakiLin@@@so100_pick_cube_in_box@@@videos@@@observation.images.image@@@chunk-000@@@file-000.mp4
+DorayakiLin@@@so100_pick_cube_in_box@@@videos@@@observation.images.image2@@@chunk-000@@@file-000.mp4

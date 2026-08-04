@@ -345,14 +345,37 @@ xvfb-run lerobot-record \
   --dataset.repo_id=jim1234321/pick_red_block0612 \
   --dataset.single_task="Put the red block into your own basket" \
   --dataset.num_episodes=1 \
-  --dataset.push_to_hub=false \ 
+  --dataset.push_to_hub=false \
   --dataset.streaming_encoding=true \
   --dataset.encoder_threads=5 \
   --dataset.vcodec=h264
 ```
-
+ 
 ```
 lerobot-record   --robot.type=so101_follower   --robot.port=/dev/ttyRightArm  --robot.id=right_arm   --robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}"   --teleop.type=so101_leader   --teleop.port=/dev/ttyLeaderRight   --teleop.id=leader_right_arm   --display_data=true   --play_sounds=false   --dataset.repo_id=jim1234321/pick_red_block0613   --dataset.single_task="Put the red block into your own basket"   --dataset.num_episodes=3  --dataset.push_to_hub=false  --dataset.streaming_encoding=true  --dataset.encoder_threads=3  --dataset.vcodec=h264  --dataset.reset_time_s=30  --dataset.episode_time_s=30  --display_ip=192.168.5.201 --display_port=9876
+```
+
+
+```
+lerobot-record \
+   --robot.type=so101_follower \
+   --robot.port=/dev/ttyRightArm \
+   --robot.id=right_arm \
+   --robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}" \
+   --teleop.type=so101_leader \
+   --teleop.port=/dev/ttyLeaderRight \  
+   --teleop.id=leader_right_arm \
+   --display_data=true \
+   --play_sounds=false \  
+   --dataset.repo_id=jim1234321/pick_red_block0613 \
+   --dataset.single_task="Put the red block into your own basket" \
+   --dataset.num_episodes=20 \
+   --dataset.push_to_hub=false \ 
+   --dataset.streaming_encoding=true \
+   --dataset.encoder_threads=3 \
+   --dataset.vcodec=h264 \
+   --dataset.reset_time_s=15 \
+   --dataset.episode_time_s=30
 ```
 
 # 双臂采集
@@ -471,6 +494,9 @@ accelerate launch --multi_gpu --num_processes=2 \
 /Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203157
 /Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203844
 
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_073320
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074823
+/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_082103
 
 大左右小
 0733:第二排中间
@@ -501,6 +527,13 @@ lerobot-edit-dataset \
     --operation.repo_ids "['cube_stacking_20260630_074041', 'cube_stacking_20260630_075559', 'cube_stacking_20260630_083421', 'cube_stacking_20260630_202534', 'cube_stacking_20260630_203157', 'cube_stacking_20260630_203844']" \
     --operation.roots "['/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074041', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_075559', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_083421', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_202534', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203157', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_203844']"
 
+
+lerobot-edit-dataset \
+    --new_repo_id jim1234321/cube_stacking_merged_validate \
+    --new_root /Users/jim/AiSpace/aidata/cube_stacking_merged_validate \
+    --operation.type merge \
+    --operation.repo_ids "['cube_stacking_20260630_073320', 'cube_stacking_20260630_074823', 'cube_stacking_20260630_082103']" \
+    --operation.roots "['/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_073320', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_074823', '/Users/jim/AiSpace/aidata/cube_stacking/cube_stacking_20260630_082103']"
 
 # ssh隧道
 ssh -N -L 8080:127.0.0.1:8080 -p 27962 root@connect.bjb2.seetacloud.com
@@ -563,6 +596,7 @@ python -m lerobot.async_inference.robot_client \
       --chunk_size_threshold=0.5 \
       --aggregate_fn_name=weighted_average \
       --policy_device=cuda \
+      --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}'
       --debug_visualize_queue_size=True \
       --rename_map='{"observation.images.left_head": "observation.images.camera1", "observation.images.left_left": "observation.images.camera2", "observation.images.right_right": "observation.images.camera3"}'
 
@@ -725,6 +759,36 @@ lerobot-rollout
 --task="Pick the red block"
 --duration=90
 --fps=15
+
+## sentry
+```
+lerobot-rollout \
+--strategy.type=sentry \
+--strategy.upload_every_n_episodes=2 \
+--policy.path=/home/jim/AiSpace/train/030000/pretrained_model  \
+--robot.type=so101_follower \
+--robot.id=right_arm \
+--robot.port=/dev/ttyRightArm \
+--robot.cameras="{ head: {type: opencv, index_or_path: '/dev/camHead', width: 640, height: 480 , fps: 30},right: {type: opencv, index_or_path: '/dev/camRight', width: 640, height: 480 , fps: 30}}"  \
+--policy.device=cpu  \
+--task="Pick the red block"  \
+--duration=120  \
+--fps=15 \
+--dataset.repo_id=jim1234321/pickred-episodic \
+--dataset.root=/home/jim/AiSpace/collect/pickred1 \
+--dataset.single_task="Pick up the red cube" \
+--duration=120
+--dataset.num_episodes=6 \
+--dataset.episode_time_s=30 \
+--dataset.reset_time_s=10 \
+--dataset.push_to_hub=false
+
+
+
+```
+
+
+
 
 lerobot-rollout
 --strategy.type=base
@@ -928,3 +992,19 @@ SUBSYSTEM=="video4linux", ENV{ID_VENDOR_ID}=="05a3", ENV{ID_MODEL_ID}=="9230", E
   lrwxrwxrwx 1 root root 6 Jun 10 08:15 /dev/camHead -> video2
   lrwxrwxrwx 1 root root 6 Jun 10 08:15 /dev/camLeft -> video0
   lrwxrwxrwx 1 root root 6 Jun 10 08:15 /dev/camRight -> video4
+
+
+#hf download
+hf download HuggingFaceVLA/community_dataset_v2 \
+       --repo-type=dataset \
+       --local-dir /root/autodl-tmp/aidata/community_dataset_v2 \
+>  2>&1 | tee /root/autodl-tmp/aidata/community_dataset_v2.log
+>
+
+#convert_dataset_v21_to_v30
+```
+python src/lerobot/datasets/v30/convert_dataset_v21_to_v30.py \
+    --repo-id=so100_pick_cube_in_box \
+    --root=/root/autodl-tmp/aidata/community_dataset_v2/DorayakiLin/so100_pick_cube_in_box/ \
+    --push-to-hub=false
+```
