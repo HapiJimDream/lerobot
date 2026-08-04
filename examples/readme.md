@@ -774,14 +774,13 @@ lerobot-rollout \
 --task="Pick the red block"  \
 --duration=120  \
 --fps=15 \
---dataset.repo_id=jim1234321/pickred-episodic \
+--dataset.repo_id=jim1234321/rollout_pickred_sentry \
 --dataset.root=/home/jim/AiSpace/collect/pickred1 \
 --dataset.single_task="Pick up the red cube" \
---duration=120
---dataset.num_episodes=6 \
---dataset.episode_time_s=30 \
---dataset.reset_time_s=10 \
+--duration=120 \
 --dataset.push_to_hub=false
+
+
 
 
 
